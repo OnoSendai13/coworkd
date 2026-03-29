@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env
+
+# Cowork state (runtime)
+state/
+screenshots/
+*.log
+
+# Context and workspace state
+workspace/context.json
+workspace/.claude/
+workspace/.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Secrets — never commit tokens or keys
+pcloud_token
+.env
+*.pem
+*.key
+
+# Docker
+.dockerignore
+
+# Backup copies of patched vendor files
+*.orig
+
+# Compiled
+__pycache__/
+*.py[cod]
+*.pyc

@@ -1,0 +1,64 @@
+# Cowork Daemon Configuration
+
+# Workspace directory (shared between all agents)
+workspace: "~/.cowork/workspace"
+
+# Redis message bus URL (from WSL2, use Windows host IP or localhost if redis runs in WSL)
+# Default: connect to n8n's redis if running, or local redis
+redis_url: "redis://10.255.255.254:6379"
+
+# User info (used by plugins for personalization)
+user:
+  name: "Laurent"
+  # Additional paths to watch (file watcher)
+  watch_paths:
+    - "~/projects"
+    - "~/Documents"
+
+# Active plugins (loaded in order)
+plugins:
+  - claude_code        # Claude Code CLI bridge
+  - file_watcher       # File system monitoring
+  - process_monitor    # System process monitoring
+  - molmo_agent        # Autonomous web agent (MolmoWeb / GPT / Gemini)
+  - task_orchestrator  # Hermes ↔ Claude Code workflow automation
+  # - pcloud_sync       # pCloud storage sync (uncomment when token configured)
+  # - screenshot        # Periodic screen capture (uncomment if needed)
+  # - browser_control   # Raw Playwright control (use molmo_agent instead for intelligent browsing)
+
+# Plugin settings
+plugin_settings:
+  file_watcher:
+    ignore_patterns:
+      - ".git"
+      - "__pycache__"
+      - "node_modules"
+      - "*.pyc"
+    poll_interval: 2  # seconds (for polling fallback)
+
+  process_monitor:
+    update_interval: 5  # seconds between context updates
+
+  screenshot:
+    enabled: false
+    interval: 60  # seconds
+    output_dir: "~/.cowork/screenshots"
+
+  molmo_agent:
+    # Remote mode: set MOLMOWEB_ENDPOINT env var to your model server
+    #   e.g. https://your-molmo-server.com/predict
+    #   or wss://your-gpt-vision-server.com (GPT-4o with axtree)
+    # Local mode (default): uses Chromium via Playwright, no API key needed
+    # Supported remote backends: Molmo, GPT-4o (axtree), Gemini (axtree/CUA)
+    auto_init: true
+
+  pcloud:
+    api_base: "https://eapi.pcloud.com"  # EU data center
+    # token_file: "~/.cowork/pcloud_token"  # created manually after OAuth
+
+# Hermes integration
+hermes:
+  # How to inject context into Hermes
+  # Options: "bus" (publish to redis), "file" (write to shared file)
+  inject_mode: "bus"
+  context_file: "~/.cowork/workspace/context.json"

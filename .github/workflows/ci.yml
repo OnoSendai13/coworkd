@@ -1,0 +1,76 @@
+name: Coworkd CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install psutil watchdog pyyaml aiohttp aiofiles redis mss
+
+      - name: Check Python syntax
+        run: |
+          python3 -m py_compile coworkd.py
+          for f in plugins/*.py; do
+            python3 -m py_compile "$f" || exit 1
+          done
+
+      - name: Verify imports
+        run: |
+          python3 -c "
+            import coworkd
+            from plugins import base, task_orchestrator, molmo_agent, process_monitor, file_watcher, screenshot, claude_code
+            print('All modules import OK')
+          "
+
+      - name: Check config.yaml is valid YAML
+        run: |
+          python3 -c "import yaml; yaml.safe_load(open('config.yaml'))" && echo "config.yaml: valid"
+
+      - name: Check install.sh syntax
+        run: bash -n install.sh && echo "install.sh: syntax OK"
+
+  test-daemon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: pip install --upgrade pip psutil watchdog pyyaml aiohttp aiofiles redis mss
+
+      - name: Daemon load test
+        run: |
+          timeout 5 python3 -c "
+            import asyncio, coworkd
+            async def test():
+                d = coworkd.CoworkDaemon()
+                cfg = await d.load_config()
+                await d.init_context(cfg)
+                print('Config keys:', list(cfg.keys()))
+                print('Workspace:', d.context.workspace)
+                print('Plugins defined:', cfg.get('plugins', []))
+            asyncio.run(test())
+          " && echo "Daemon init: OK"

@@ -1,0 +1,19 @@
+[Unit]
+Description=Cowork Daemon — Claude Cowork equivalent for Hermes Agent
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/repos/coworkd
+ExecStart=%h/.hermes/hermes-agent/venv/bin/python %h/.cowork/coworkd.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment
+Environment=COWORK_CONFIG=%h/.cowork/config.yaml
+Environment=PYTHONPATH=%h/.hermes/hermes-agent/venv/lib/python3.11/site-packages
+
+[Install]
+WantedBy=default.target
