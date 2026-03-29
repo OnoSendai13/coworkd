@@ -8,7 +8,7 @@
 ## Repository Structure
 
 This repo (`coworkd`) is the **daemon + plugins** side.
-It pairs with a [Hermes Agent](https://github.com/anthropics/hermes-agent) fork that includes `cowork_tools.py`.
+It pairs with a [Hermes Agent](https://github.com/nousresearch/hermes-agent) fork that includes `cowork_tools.py`.
 
 ```
 github.com/YOUR_USER/coworkd/
