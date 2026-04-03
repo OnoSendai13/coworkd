@@ -34,9 +34,9 @@ cd ~/repos/coworkd
 bash install.sh
 ```
 
-Or with Hermes fork integration:
+The install script also updates the Hermes fork (with cowork tools built-in):
 ```bash
-bash install.sh --with-hermes --workspace ~/.cowork
+bash install.sh --workspace ~/.cowork
 ```
 
 ---
@@ -76,7 +76,7 @@ coworkd/
 ├── scripts/
 │   ├── install.sh         # install script
 │   ├── cowork.service     # systemd user service
-│   └── cowork_tools.py    # Hermes tool layer (copy to Hermes/tools/)
+│   └── HERMES_INTEGRATION.md
 ├── README.md
 ├── DEVELOPMENT_PLAN.md
 └── .gitignore
@@ -103,9 +103,10 @@ systemctl --user enable --now cowork
 
 ## Hermes Integration
 
-See [scripts/HERMES_INTEGRATION.md](scripts/HERMES_INTEGRATION.md) for the step-by-step.
+The `cowork_tools` are **already integrated** in the `OnoSendai13/hermes-agent` fork.
+Run `install.sh` and it will sync the fork automatically.
 
-Briefly: copy `scripts/cowork_tools.py` into your Hermes fork's `tools/` directory, add the tool names to `toolsets.py`, and add the module to `model_tools.py`.
+See [scripts/HERMES_INTEGRATION.md](scripts/HERMES_INTEGRATION.md) for details.
 
 ---
 

@@ -1,30 +1,23 @@
 #!/usr/bin/env bash
 # Coworkd Install Script
 # ======================
-# Sets up the Cowork daemon and optionally integrates with Hermes Agent.
+# Sets up the Cowork daemon and integrates with Hermes Agent.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/YOUR_USER/coworkd/main/install.sh | bash
-#
-# Or clone and run:
-#   git clone https://github.com/YOUR_USER/coworkd.git ~/repos/coworkd
-#   ~/repos/coworkd/scripts/install.sh
+#   ~/repos/coworkd/install.sh
 #
 # Options:
-#   --with-hermes    Also clone/configure Hermes fork with cowork_tools.py
 #   --workspace DIR  Custom workspace directory (default: ~/.cowork/workspace)
 
 set -e
 
 COWORK_DIR="${COWORK_DIR:-$HOME/.cowork}"
 COWORKD_REPO="${COWORKD_REPO:-$HOME/repos/coworkd}"
-HERMES_FORK="${HERMES_FORK:-https://github.com/OnoSendai13/hermes-agent}"
-WITH_HERMES=0
+HERMES_DIR="$HOME/repos/hermes-agent"
 
 # Parse args
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --with-hermes) WITH_HERMES=1; shift ;;
         --workspace) COWORK_DIR="$2"; shift 2 ;;
         *) echo "Unknown option: $1"; exit 1 ;;
     esac
@@ -33,50 +26,51 @@ done
 echo "=== Coworkd Install ==="
 echo "COWORK_DIR: $COWORK_DIR"
 echo "COWORKD_REPO: $COWORKD_REPO"
-echo "WITH_HERMES: $WITH_HERMES"
+echo "HERMES_DIR: $HERMES_DIR"
 
-# ─── 1. Clone / update coworkd repo ───────────────────────────────────────
+# ─── 1. Update coworkd repo ────────────────────────────────────────────────
 if [[ -d "$COWORKD_REPO/.git" ]]; then
-    echo "[1/5] Updating coworkd repo..."
+    echo "[1/6] Updating coworkd repo..."
     git -C "$COWORKD_REPO" pull
 else
-    echo "[1/5] Cloning coworkd repo..."
-    git clone "$COWORKD_REPO" "$COWORKD_REPO"
+    echo "[1/6] Cloning coworkd repo..."
+    git clone "https://github.com/OnoSendai13/coworkd.git" "$COWORKD_REPO"
 fi
 
-# Symlink workspace to canonical location
+# ─── 2. Symlink workspace ─────────────────────────────────────────────────
 mkdir -p "$COWORK_DIR"
 if [[ ! -e "$COWORK_DIR/workspace" ]]; then
     ln -s "$COWORKD_REPO/workspace" "$COWORK_DIR/workspace"
 fi
 
-# ─── 2. Python dependencies ────────────────────────────────────────────────
-VENV="${COWORK_DIR}/venv"
+# ─── 3. Python dependencies ────────────────────────────────────────────────
+VENV="$COWORK_DIR/venv"
 HERMES_VENV="$HOME/.hermes/hermes-agent/venv"
 
-echo "[2/5] Checking Python dependencies..."
+echo "[3/6] Checking Python dependencies..."
 
 install_deps() {
-    local venv="$1"
-    "$venv/bin/pip" install --quiet psutil watchdog pyyaml aiohttp aiofiles redis mss 2>/dev/null || \
-    "$venv/bin/pip" install psutil watchdog pyyaml aiohttp aiofiles redis mss
+    local venv_python="$1"
+    shift
+    local pkgs="$*"
+    "$venv_python" -m pip install --quiet $pkgs 2>/dev/null || \
+    "$venv_python" -m pip install $pkgs
 }
 
 if [[ -d "$HERMES_VENV" ]]; then
     echo "  Using Hermes venv: $HERMES_VENV"
-    install_deps "$HERMES_VENV"
+    install_deps "$HERMES_VENV/bin/python3" psutil watchdog pyyaml aiohttp aiofiles redis mss
 else
     echo "  Creating venv at $VENV"
     python3 -m venv "$VENV"
-    install_deps "$VENV"
+    install_deps "$VENV/bin/python3" psutil watchdog pyyaml aiohttp aiofiles redis mss
 fi
 
-# ─── 3. Claude Code CLI ─────────────────────────────────────────────────────
-echo "[3/5] Checking Claude Code CLI..."
+# ─── 4. Claude Code CLI ────────────────────────────────────────────────────
+echo "[4/6] Checking Claude Code CLI..."
 if ! command -v claude-code &>/dev/null && ! command -v claude &>/dev/null; then
     echo "  Claude Code not found. Install: npm install -g @anthropic-ai/claude-code"
 else
-    # Create symlink if needed
     if command -v claude &>/dev/null && [[ ! -f "$HOME/.local/bin/claude-code" ]]; then
         mkdir -p "$HOME/.local/bin"
         ln -sf "$(which claude)" "$HOME/.local/bin/claude-code"
@@ -84,14 +78,14 @@ else
     fi
 fi
 
-# ─── 4. MolmoWeb ───────────────────────────────────────────────────────────
+# ─── 5. MolmoWeb ───────────────────────────────────────────────────────────
 MOLMOWEB_LIB="$COWORK_DIR/lib/molmoweb"
-echo "[4/5] Checking MolmoWeb..."
+echo "[5/6] Checking MolmoWeb..."
 if [[ ! -d "$MOLMOWEB_LIB" ]]; then
     echo "  Cloning MolmoWeb..."
     mkdir -p "$COWORK_DIR/lib"
     git clone --depth=1 https://github.com/allenai/molmoweb "$MOLMOWEB_LIB"
-    # Namespace package fix — add __init__.py files
+    # Namespace package fix
     touch "$MOLMOWEB_LIB/__init__.py"
     touch "$MOLMOWEB_LIB/agent/__init__.py"
     touch "$MOLMOWEB_LIB/inference/__init__.py"
@@ -105,33 +99,42 @@ if ! grep -q "if self.agent is not None" "$MOLMOWEB_LIB/inference/client.py" 2>/
         "$MOLMOWEB_LIB/inference/client.py"
 fi
 
-# ─── 5. Hermes fork (optional) ─────────────────────────────────────────────
-if [[ "$WITH_HERMES" == "1" ]]; then
-    echo "[5/5] Setting up Hermes fork with cowork_tools..."
-    HERMES_DIR="$HOME/repos/hermes-agent"
-    if [[ -d "$HERMES_DIR/.git" ]]; then
-        echo "  Updating Hermes fork..."
-        git -C "$HERMES_DIR" pull
+# ─── 6. Hermes Agent (fork with cowork tools) ──────────────────────────────
+echo "[6/6] Checking Hermes Agent fork..."
+if [[ -d "$HERMES_DIR/.git" ]]; then
+    echo "  Fetching upstream..."
+    git -C "$HERMES_DIR" fetch upstream
+    LOCAL=$(git -C "$HERMES_DIR" rev-parse @)
+    UPSTREAM=$(git -C "$HERMES_DIR" rev-parse upstream/main)
+    if [[ "$LOCAL" != "$UPSTREAM" ]]; then
+        echo "  Merging upstream/main into fork..."
+        git -C "$HERMES_DIR" merge upstream/main --no-edit
+        echo "  Pushing to origin..."
+        git -C "$HERMES_DIR" push origin main
     else
-        echo "  Cloning Hermes fork..."
-        git clone "$HERMES_FORK" "$HERMES_DIR"
+        echo "  Fork already up to date with upstream"
     fi
+else
+    echo "  Cloning Hermes fork..."
+    git clone "https://github.com/OnoSendai13/hermes-agent.git" "$HERMES_DIR"
+    git -C "$HERMES_DIR" remote add upstream "https://github.com/nousresearch/hermes-agent.git"
+fi
 
-    # Copy cowork_tools.py into Hermes tools/
-    cp "$COWORKD_REPO/scripts/cowork_tools.py" "$HERMES_DIR/tools/cowork_tools.py"
-
-    # Add cowork tools to toolsets.py (manual step noted)
-    echo "  NOTE: Add cowork tools to toolsets.py and model_tools.py manually."
-    echo "  See: $COWORKD_REPO/scripts/HERMES_INTEGRATION.md"
+# Install in hermes venv
+if [[ -d "$HERMES_VENV" ]]; then
+    echo "  Installing Hermes v0.7.0 in venv..."
+    uv pip install --python "$HERMES_VENV/bin/python3" -e "$HERMES_DIR" 2>/dev/null || \
+    "$HERMES_VENV/bin/python3" -m pip install -e "$HERMES_DIR"
 fi
 
 # ─── Done ──────────────────────────────────────────────────────────────────
 echo ""
 echo "=== Install complete ==="
 echo ""
-echo "Cowork daemon:  python $COWORK_DIR/coworkd.py"
-echo "Workspace:      $COWORK_DIR/workspace"
+echo "Cowork daemon:   python $COWORK_DIR/coworkd.py"
+echo "Workspace:       $COWORK_DIR/workspace"
 echo "Context file:   $COWORK_DIR/workspace/context.json"
+echo "Hermes:         hermes (v0.7.0 with cowork tools built-in)"
 echo ""
 echo "To start the daemon:"
 echo "  python $COWORK_DIR/coworkd.py"

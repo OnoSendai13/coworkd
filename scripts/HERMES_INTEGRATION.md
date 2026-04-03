@@ -1,62 +1,53 @@
 # Hermes Integration Guide
 
-This guide explains how to add `cowork_tools.py` to your Hermes Agent fork.
+The `cowork_tools` integration is **already included** in the Hermes Agent fork
+(`OnoSendai13/hermes-agent`). After syncing the fork, the 10 cowork tools are
+automatically registered and available — no manual steps required.
 
 ---
 
-## Step 1 — Copy cowork_tools.py
+## Quick Setup (Already Done)
+
+Your fork already has the integration. To update:
 
 ```bash
-cp scripts/cowork_tools.py /path/to/hermes-agent/tools/cowork_tools.py
+cd ~/repos/hermes-agent
+git fetch upstream
+git merge upstream/main
+git push origin main
 ```
+
+Then restart Hermes. The tools are in `_HERMES_CORE_TOOLS` and always enabled.
 
 ---
 
-## Step 2 — Add to toolsets
+## What Was Integrated
 
-In `hermes-agent/toolsets.py`, find `_HERMES_CORE_TOOLS` and add:
-
-```python
-"cowork_status", "cowork_process_list", "cowork_system_resources",
-"cowork_context_read", "cowork_context_write",
-"cowork_web_task", "cowork_web_snapshot",
-"cowork_run_code_task",
-"cowork_screenshot_capture", "cowork_screenshot_list",
-```
-
----
-
-## Step 3 — Discover the module
-
-In `hermes-agent/model_tools.py`, find `_discover_tools()` and add:
-
-```python
-"tools.cowork_tools",
-```
-
-to the `_modules` list.
-
----
-
-## Step 4 — Restart Hermes
-
-The new tools will be available on the next Hermes restart.
+| File | Change |
+|------|--------|
+| `tools/cowork_tools.py` | New — 10 tools (status, process list, context, web, screenshot, delegation) |
+| `toolsets.py` | 10 tool names added to `_HERMES_CORE_TOOLS` |
+| `model_tools.py` | `"tools.cowork_tools"` added to `_discover_tools()` |
 
 ---
 
 ## Verifying
 
-From any Hermes session:
+```bash
+hermes tools list    # No separate "cowork" toolset — tools are always-on (core)
+hermes status        # Shows Hermes + Cowork status
 ```
-/tools cowork
-```
-Should list all 11 cowork tools.
+
+Or in any chat session, the tools are available directly:
+- `/tools` shows `cowork_status` among available tools
 
 ---
 
-## How the integration works
+## How the Integration Works
 
-`cowork_tools.py` reads/writes `~/.cowork/workspace/context.json` directly — **the daemon does not need to be running** for basic tools (status, process_list, context read/write, screenshot capture).
+`cowork_tools.py` reads/writes `~/.cowork/workspace/context.json` directly — **the
+daemon does not need to be running** for basic tools (status, process_list,
+context read/write, screenshot capture).
 
 The daemon **is required** for:
 - `cowork_run_code_task` → task orchestration (Claude Code execution)
@@ -67,10 +58,22 @@ Basic tools (process list, system resources, context read/write) work standalone
 
 ---
 
-## Files modified in Hermes fork
+## Coworkd vs Hermes-Agent
 
-| File | Change |
-|------|--------|
-| `tools/cowork_tools.py` | **New file** — 11 tools |
-| `toolsets.py` | Added 11 tool names to `_HERMES_CORE_TOOLS` |
-| `model_tools.py` | Added `"tools.cowork_tools"` to `_discover_tools()` |
+```
+coworkd (this repo)            Hermes fork (hermes-agent)
+────────────────────           ───────────────────────────
+coworkd.py daemon              tools/cowork_tools.py
+plugins/                       10 registered tools in
+  molmo_agent.py                 _HERMES_CORE_TOOLS
+  task_orchestrator.py
+  screenshot.py
+  process_monitor.py
+  pcloud_sync.py
+  claude_code.py
+  file_watcher.py
+  browser_control.py
+  base.py
+```
+
+Communication: `cowork_tools.py` <-> `~/.cowork/workspace/context.json` <-> daemon.
