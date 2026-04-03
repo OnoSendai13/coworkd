@@ -2,7 +2,7 @@
 
 **Cowork daemon + plugins for Hermes Agent.** A standalone asyncio system that runs on WSL2/Ubuntu, providing process monitoring, autonomous web browsing (MolmoWeb), file watching, and Claude Code task orchestration.
 
-**Forked from:** This repo is designed to complement a [Hermes Agent](https://github.com/nousresearch/hermes-agent) fork with integrated `cowork_tools.py`. Coworkd is the **daemon side**; Hermes with `cowork_tools.py` is the **tool interface side**. Communication between the two is via a shared `context.json` file and Redis pub/sub.
+**Forked from:** This repo is designed to complement the [`OnoSendai13/hermes-agent`](https://github.com/OnoSendai13/hermes-agent) fork with integrated `cowork_tools.py`. Coworkd is the **daemon side**; Hermes with `cowork_tools.py` is the **tool interface side**. Communication between the two is via a shared `context.json` file and Redis pub/sub.
 
 ---
 
