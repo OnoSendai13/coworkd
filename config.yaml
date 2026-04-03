@@ -22,7 +22,7 @@ plugins:
   - process_monitor    # System process monitoring
   - molmo_agent        # Autonomous web agent (MolmoWeb / GPT / Gemini)
   - task_orchestrator  # Hermes ↔ Claude Code workflow automation
-  # - pcloud_sync       # pCloud storage sync (uncomment when token configured)
+  - pcloud_sync         # pCloud storage sync (local mount at /mnt/p, no token needed)
   # - screenshot        # Periodic screen capture (uncomment if needed)
   # - browser_control   # Raw Playwright control (use molmo_agent instead for intelligent browsing)
 
